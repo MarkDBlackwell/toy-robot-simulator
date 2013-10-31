@@ -17,21 +17,21 @@ http://rubylearning.com/blog/2011/07/28/how-do-i-test-my-code-with-minitest/
 require 'minitest/autorun'
 
 module ToyRobot
-  class TestToyRobotTable < MiniTest::Unit::TestCase
-    def setup() @table = ToyRobotTable.new end
+  class TestTable < MiniTest::Unit::TestCase
+    def setup() @table = Table.new end
 
     def test_compass_directions_must_be_in_the_correct_order
       correct_order = %w[ EAST NORTH WEST SOUTH ]
-      assert_equal correct_order, ToyRobotTable::DIRECTIONS
+      assert_equal correct_order, Table::DIRECTIONS
     end
 
-    def test_must_have_compass_directions() assert ToyRobotTable::DIRECTIONS end
+    def test_must_have_compass_directions() assert Table::DIRECTIONS end
 
-    def test_must_have_four_compass_directions() assert_equal 4, ToyRobotTable::DIRECTIONS_LENGTH end
+    def test_must_have_four_compass_directions() assert_equal 4, Table::DIRECTIONS_LENGTH end
   end
 
-  class TestToyRobot < MiniTest::Unit::TestCase
-    def setup() @robot = ToyRobot.new end
+  class TestRobot < MiniTest::Unit::TestCase
+    def setup() @robot = Robot.new end
 
     def test_can_move
       @robot.make_valid
@@ -121,7 +121,7 @@ module ToyRobot
 
     def test_valid_after_orienting_in_good_direction
       @robot.make_valid
-      ToyRobotTable::DIRECTIONS.each do |e|
+      Table::DIRECTIONS.each do |e|
         @robot.orient e
         assert @robot.valid?
       end
@@ -137,8 +137,8 @@ module ToyRobot
     def test_valid_after_the_first_place_command() @robot.place; assert @robot.valid? end
   end
 
-  class TestSafeToyRobot < MiniTest::Unit::TestCase
-    def setup() @robot = SafeToyRobot.new end
+  class TestSafeRobot < MiniTest::Unit::TestCase
+    def setup() @robot = SafeRobot.new end
 
     def test_after_valid_place_can_move
       @robot.place
@@ -210,9 +210,9 @@ end
 #--------------
 
 module ToyRobot
-  class ToyRobot; end
+  class Robot; end
 
-  class SafeToyRobot < ToyRobot
+  class SafeRobot < Robot
     def check_after() valid? ? '' : (revert; 'Invalid') end
 
     def guard() valid? ? '' : 'Must start with a valid Place command' end
@@ -240,12 +240,12 @@ module ToyRobot
     end
   end
 
-  class ToyRobot
+  class Robot
     attr_reader :direction
     attr_reader :position
 
     def initialize
-      bad_dimension_example = ToyRobotTable::OKAY_DIMENSION.begin - 1
+      bad_dimension_example = Table::OKAY_DIMENSION.begin - 1
       @position = Array.new(2){bad_dimension_example}
       @direction = 'bad'
     end
@@ -253,9 +253,9 @@ module ToyRobot
     def make_valid() reposition [0, 0]; orient 'EAST' end
 
     def move
-      raise unless ToyRobotTable::DIRECTIONS.include? @direction
-      which     =  ToyRobotTable::DIRECTIONS.index    @direction
-      increment =  ToyRobotTable::DIRECTIONS_INCREMENT.at which
+      raise unless Table::DIRECTIONS.include? @direction
+      which     =  Table::DIRECTIONS.index    @direction
+      increment =  Table::DIRECTIONS_INCREMENT.at which
       new_position = @position.each_index.map{|i| (@position.at i) + (increment.at i)}
       reposition new_position
     end
@@ -273,23 +273,23 @@ module ToyRobot
 
     def turn(increment)
       raise unless [-1, 1].include? increment
-      which = ToyRobotTable::DIRECTIONS.index @direction
-      sum   = ToyRobotTable::DIRECTIONS_LENGTH + which + increment
-      orient  ToyRobotTable::DIRECTIONS.at sum %
-              ToyRobotTable::DIRECTIONS_LENGTH
+      which = Table::DIRECTIONS.index @direction
+      sum   = Table::DIRECTIONS_LENGTH + which + increment
+      orient  Table::DIRECTIONS.at sum %
+              Table::DIRECTIONS_LENGTH
     end
 
     def turn_left () turn  1 end
     def turn_right() turn -1 end
 
     def valid?
-      both_within = @position.all?{|e| ToyRobotTable::OKAY_DIMENSION.include? e}
-      direction_good = ToyRobotTable::DIRECTIONS.include? @direction
+      both_within = @position.all?{|e| Table::OKAY_DIMENSION.include? e}
+      direction_good = Table::DIRECTIONS.include? @direction
       both_within && direction_good
     end
   end
 
-  class ToyRobotTable
+  class Table
     DIRECTIONS =         %w[  EAST   NORTH     WEST    SOUTH  ]
     DIRECTIONS_INCREMENT = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
     DIRECTIONS_LENGTH = DIRECTIONS.length
