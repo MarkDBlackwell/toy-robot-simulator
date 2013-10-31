@@ -1,8 +1,15 @@
 =begin
 =end
 =begin
+Author: Mark D. Blackwell
+Dates:
+October 31, 2013 - create
 
 Based on:
+A Test Ruby Program
+From Locomote (http://www.locomote.com), an Australian based development company.
+
+Ref:
 http://rubylearning.com/blog/2011/07/28/how-do-i-test-my-code-with-minitest/
 
 =end
@@ -19,21 +26,12 @@ class TestToyRobotTable < MiniTest::Unit::TestCase
   end
 
   def test_must_have_four_compass_directions
-    assert 4 == ToyRobotTable::DIRECTIONS_LENGTH
+    assert_equal 4, ToyRobotTable::DIRECTIONS_LENGTH
   end
 
   def test_compass_directions_must_be_in_the_correct_order
     correct_order = %w[ EAST NORTH WEST SOUTH ]
-    assert correct_order == ToyRobotTable::DIRECTIONS
-  end
-
-  def test_must_have_edges
-    assert ToyRobotTable::EDGES
-  end
-
-  def test_edges_must_be_in_the_correct_order
-    correct_order = [ 4, 4, 0, 0 ]
-    assert correct_order == ToyRobotTable::EDGES
+    assert_equal correct_order, ToyRobotTable::DIRECTIONS
   end
 end
 
@@ -54,7 +52,7 @@ class TestToyRobot < MiniTest::Unit::TestCase
   def test_can_reposition
     sample = [-1, -1]
     @robot.reposition sample
-    assert sample == @robot.position
+    assert_equal sample, @robot.position
   end
 
   def test_valid_after_repositioning_with_good_coordinates
@@ -76,7 +74,7 @@ class TestToyRobot < MiniTest::Unit::TestCase
   def test_can_orient
     sample = 'any direction'
     @robot.orient(sample)
-    assert sample == @robot.direction
+    assert_equal sample, @robot.direction
   end
 
   def test_valid_after_orienting_in_good_direction
@@ -101,6 +99,7 @@ class TestToyRobot < MiniTest::Unit::TestCase
     @robot.reposition point
     assert_equal direction, @robot.direction
     assert_equal point,     @robot.position
+
     @robot.revert
     assert_equal 'EAST', @robot.direction
     assert_equal [0, 0], @robot.position
@@ -111,6 +110,7 @@ class TestToyRobot < MiniTest::Unit::TestCase
     @robot.move
     assert_equal 'EAST', @robot.direction
     assert_equal [1, 0], @robot.position
+
     @robot.make_valid
     direction = 'NORTH'
     @robot.orient direction
@@ -121,26 +121,18 @@ class TestToyRobot < MiniTest::Unit::TestCase
 
   def test_can_turn_left
     @robot.make_valid
-    @robot.turn_left
-    assert_equal 'NORTH', @robot.direction
-    @robot.turn_left
-    assert_equal 'WEST',  @robot.direction
-    @robot.turn_left
-    assert_equal 'SOUTH', @robot.direction
-    @robot.turn_left
-    assert_equal 'EAST',  @robot.direction
+    %w[ NORTH WEST SOUTH EAST ].each do |e|
+      @robot.turn_left
+      assert_equal e, @robot.direction
+    end
   end
 
   def test_can_turn_right
     @robot.make_valid
-    @robot.turn_right
-    assert_equal 'SOUTH', @robot.direction
-    @robot.turn_right
-    assert_equal 'WEST',  @robot.direction
-    @robot.turn_right
-    assert_equal 'NORTH', @robot.direction
-    @robot.turn_right
-    assert_equal 'EAST',  @robot.direction
+    %w[ SOUTH WEST NORTH EAST ].each do |e|
+      @robot.turn_right
+      assert_equal e, @robot.direction
+    end
   end
 end
 
@@ -155,8 +147,6 @@ class ToyRobotTable
   DIRECTIONS_INCREMENT = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
   DIRECTIONS_LENGTH = DIRECTIONS.length
   OKAY_DIMENSION = 0..4
-  EDGES = [ OKAY_DIMENSION.end,   OKAY_DIMENSION.end,
-            OKAY_DIMENSION.begin, OKAY_DIMENSION.begin ]
 end
 
 class ToyRobot
@@ -165,30 +155,15 @@ class ToyRobot
 
   def initialize
     bad_dimension_example = ToyRobotTable::OKAY_DIMENSION.begin - 1
-    @position = [bad_dimension_example, bad_dimension_example]
+#   @position = [bad_dimension_example, bad_dimension_example]
+    @position = Array.new(2){bad_dimension_example}
     @direction = 'bad'
-  end
-
-  def valid?
-    both_within = @position.all?{|e| ToyRobotTable::OKAY_DIMENSION.include? e}
-    direction_good = ToyRobotTable::DIRECTIONS.include? @direction
-    both_within && direction_good
   end
 
   def make_valid
     reposition [0, 0]
     orient 'EAST'
   end
-
-  def place(*args)
-    make_valid
-  end
-
-  def orient(direction) @save_direction, @direction = @direction, direction end
-
-  def reposition(point) @save_position, @position = @position, point end
-
-  def revert() @direction, @position = @save_direction, @save_position end
 
   def move
     raise unless ToyRobotTable::DIRECTIONS.include? @direction
@@ -198,8 +173,15 @@ class ToyRobot
     reposition new_position
   end
 
-  def turn_left () turn  1 end
-  def turn_right() turn -1 end
+  def orient(direction) @save_direction, @direction = @direction, direction end
+
+  def place(*args)
+    make_valid
+  end
+
+  def reposition(point) @save_position, @position = @position, point end
+
+  def revert() @direction, @position = @save_direction, @save_position end
 
   def turn(increment)
     raise unless [-1, 1].include? increment
@@ -207,6 +189,15 @@ class ToyRobot
     sum   = ToyRobotTable::DIRECTIONS_LENGTH + which + increment
     orient  ToyRobotTable::DIRECTIONS.at(sum %
             ToyRobotTable::DIRECTIONS_LENGTH)
+  end
+
+  def turn_left () turn  1 end
+  def turn_right() turn -1 end
+
+  def valid?
+    both_within = @position.all?{|e| ToyRobotTable::OKAY_DIMENSION.include? e}
+    direction_good = ToyRobotTable::DIRECTIONS.include? @direction
+    both_within && direction_good
   end
 end
 
@@ -217,17 +208,17 @@ class SafeToyRobot < ToyRobot
     revert unless valid?
   end
 
+  def place
+    super
+    revert unless valid?
+  end
+
   def turn_left
     super
     revert unless valid?
   end
 
   def turn_right
-    super
-    revert unless valid?
-  end
-
-  def place
     super
     revert unless valid?
   end
