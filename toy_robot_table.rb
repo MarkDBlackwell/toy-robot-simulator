@@ -19,7 +19,7 @@ class TestToyRobotTable < MiniTest::Unit::TestCase
   end
 
   def test_must_have_four_compass_directions
-    assert 4 == ToyRobotTable::DIRECTIONS.length
+    assert 4 == ToyRobotTable::DIRECTIONS_LENGTH
   end
 
   def test_compass_directions_must_be_in_the_correct_order
@@ -117,6 +117,33 @@ class TestToyRobot < MiniTest::Unit::TestCase
     assert_equal direction, @robot.direction
     assert_equal [1, 1],    @robot.position
   end
+
+  def test_can_turn_left
+    @robot.make_valid
+    @robot.make_valid
+    @robot.turn_left
+    assert_equal 'NORTH', @robot.direction
+    (0...            ToyRobotTable::DIRECTIONS_LENGTH).each do |i|
+      @robot.orient (ToyRobotTable::DIRECTIONS.at i)
+      @robot.turn_left
+      expect = ToyRobotTable::DIRECTIONS.at(i + 1 %
+               ToyRobotTable::DIRECTIONS_LENGTH)
+      assert_equal expect, @robot.direction
+    end
+  end
+
+  def test_can_turn_right
+    @robot.make_valid
+    @robot.turn_right
+    assert_equal 'SOUTH', @robot.direction
+    (0...            ToyRobotTable::DIRECTIONS_LENGTH).each do |i|
+      @robot.orient (ToyRobotTable::DIRECTIONS.at i)
+      @robot.turn_right
+      expect = ToyRobotTable::DIRECTIONS.at(i - 1 %
+               ToyRobotTable::DIRECTIONS_LENGTH)
+      assert_equal expect, @robot.direction
+    end
+  end
 end
 
 
@@ -126,6 +153,7 @@ class ToyRobotTable
             OKAY_DIMENSION.begin, OKAY_DIMENSION.begin ]
   DIRECTIONS = %w[ EAST NORTH WEST SOUTH ]
   DIRECTIONS_INCREMENT = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
+  DIRECTIONS_LENGTH = DIRECTIONS.length
 end
 
 class ToyRobot
@@ -168,9 +196,21 @@ class ToyRobot
 
   def move
     raise unless ToyRobotTable::DIRECTIONS.include? @direction
-    which = ToyRobotTable::DIRECTIONS.index @direction
-    increment = ToyRobotTable::DIRECTIONS_INCREMENT.at which
+    which =      ToyRobotTable::DIRECTIONS.index @direction
+    increment =  ToyRobotTable::DIRECTIONS_INCREMENT.at which
     new_position = @position.each_index.map{|i| (@position.at i) + (increment.at i)}
     reposition new_position
+  end
+
+  def turn_left
+    which = ToyRobotTable::DIRECTIONS.index @direction
+    orient  ToyRobotTable::DIRECTIONS.at(which + 1 %
+            ToyRobotTable::DIRECTIONS_LENGTH)
+  end
+
+  def turn_right
+    which = ToyRobotTable::DIRECTIONS.index @direction
+    orient  ToyRobotTable::DIRECTIONS.at(which - 1 %
+            ToyRobotTable::DIRECTIONS_LENGTH)
   end
 end
