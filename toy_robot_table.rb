@@ -142,7 +142,7 @@ class TestSafeToyRobot < MiniTest::Unit::TestCase
   def test_after_valid_place_can_move
     @robot.place
     s = @robot.move
-    puts s
+#   puts s
     assert_equal '', s
     assert_equal 'EAST', @robot.direction
     assert_equal [1, 0], @robot.position
@@ -151,24 +151,24 @@ class TestSafeToyRobot < MiniTest::Unit::TestCase
   def test_after_valid_place_can_turn_left
     @robot.place
     s = @robot.turn_left
-    puts s
+#   puts s
     assert_equal '', s
     assert_equal 'NORTH', @robot.direction
-    assert_equal [0, 0], @robot.position
+    assert_equal [0, 0],  @robot.position
   end
 
   def test_after_valid_place_can_turn_right
     @robot.place
     s = @robot.turn_right
-    puts s
+#   puts s
     assert_equal '', s
     assert_equal 'SOUTH', @robot.direction
-    assert_equal [0, 0], @robot.position
+    assert_equal [0, 0],  @robot.position
   end
 
   def test_before_valid_place_discards_move
     s = @robot.move
-    puts s
+#   puts s
     assert_equal 'Must start with a valid Place command', s
     assert_equal 'bad',    @robot.direction
     assert_equal [-1, -1], @robot.position
@@ -176,7 +176,7 @@ class TestSafeToyRobot < MiniTest::Unit::TestCase
 
   def test_before_valid_place_discards_turn_left
     s = @robot.turn_left
-    puts s
+#   puts s
     assert_equal 'Must start with a valid Place command', s
     assert_equal 'bad',    @robot.direction
     assert_equal [-1, -1], @robot.position
@@ -184,7 +184,7 @@ class TestSafeToyRobot < MiniTest::Unit::TestCase
 
   def test_before_valid_place_discards_turn_right
     s = @robot.turn_right
-    puts s
+#   puts s
     assert_equal 'Must start with a valid Place command', s
     assert_equal 'bad',    @robot.direction
     assert_equal [-1, -1], @robot.position
@@ -193,14 +193,14 @@ class TestSafeToyRobot < MiniTest::Unit::TestCase
   def test_report_from_custom_position
     @robot.place [2, 3], 'WEST'
     s = @robot.report
-    puts s
+#   puts s
     assert_equal 'At [2, 3], facing WEST', s
   end
 
   def test_report_from_default_position
     @robot.place
     s = @robot.report
-    puts s
+#   puts s
     assert_equal 'At [0, 0], facing EAST', s
   end
 end
@@ -210,14 +210,9 @@ end
 class ToyRobot; end
 
 class SafeToyRobot < ToyRobot
+  def check_after() valid? ? '' : (revert; 'Invalid') end
 
-  def check_after
-    valid? ? '' : (revert; 'Invalid')
-  end
-
-  def guard
-    valid? ? '' : 'Must start with a valid Place command'
-  end
+  def guard() valid? ? '' : 'Must start with a valid Place command' end
 
   def move
     s = guard
@@ -225,14 +220,9 @@ class SafeToyRobot < ToyRobot
     s
   end
 
-  def place(location=[0, 0], direction='EAST')
-    super
-    check_after
-  end
+  def place(location=[0, 0], direction='EAST') super; check_after end
 
-  def report
-    "At #{position}, facing #{direction}"
-  end
+  def report() "At #{position}, facing #{direction}" end
 
   def turn_left
     s = guard
