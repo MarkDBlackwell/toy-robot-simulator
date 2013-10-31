@@ -189,6 +189,20 @@ class TestSafeToyRobot < MiniTest::Unit::TestCase
     assert_equal 'bad',    @robot.direction
     assert_equal [-1, -1], @robot.position
   end
+
+  def test_report_from_custom_position
+    @robot.place [2, 3], 'WEST'
+    s = @robot.report
+    puts s
+    assert_equal 'At [2, 3], facing WEST', s
+  end
+
+  def test_report_from_default_position
+    @robot.place
+    s = @robot.report
+    puts s
+    assert_equal 'At [0, 0], facing EAST', s
+  end
 end
 
 #--------------
@@ -214,6 +228,10 @@ class SafeToyRobot < ToyRobot
   def place(location=[0, 0], direction='EAST')
     super
     check_after
+  end
+
+  def report
+    "At #{position}, facing #{direction}"
   end
 
   def turn_left
