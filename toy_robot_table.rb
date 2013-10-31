@@ -17,17 +17,36 @@ http://rubylearning.com/blog/2011/07/28/how-do-i-test-my-code-with-minitest/
 require 'minitest/autorun'
 
 module ToyRobot
-  class TestTable < MiniTest::Unit::TestCase
-    def setup() @table = Table.new end
+  class TestRun < MiniTest::Unit::TestCase
+    def setup() @runner = Run.new end
 
-    def test_compass_directions_must_be_in_the_correct_order
-      correct_order = %w[ EAST NORTH WEST SOUTH ]
-      assert_equal correct_order, Table::DIRECTIONS
+    def test_null_input
+      s = @runner.feed_line
+      assert_equal '', s
     end
 
-    def test_must_have_compass_directions() assert Table::DIRECTIONS end
+    def test_tokenizer
+      expect = %w[ a b ]
+      comma = @runner.tokenize 'a,b'
+      assert_equal expect, comma
+      space = @runner.tokenize 'a b'
+      assert_equal expect, space
+    end
 
-    def test_must_have_four_compass_directions() assert_equal 4, Table::DIRECTIONS_LENGTH end
+    def test_startup
+    end
+
+    def test_letter_a
+      input = <<END_OF_INPUT
+PLACE
+REPORT
+END_OF_INPUT
+      input.each_line do |e|
+        s = @runner.feed_line e
+        expect = 'At [0, 0], facing EAST'
+        assert_equal expect, s
+      end
+    end
   end
 
   class TestRobot < MiniTest::Unit::TestCase
@@ -205,41 +224,24 @@ module ToyRobot
       assert_equal 'At [0, 0], facing EAST', s
     end
   end
+
+  class TestTable < MiniTest::Unit::TestCase
+    def setup() @table = Table.new end
+
+    def test_compass_directions_must_be_in_the_correct_order
+      correct_order = %w[ EAST NORTH WEST SOUTH ]
+      assert_equal correct_order, Table::DIRECTIONS
+    end
+
+    def test_must_have_compass_directions() assert Table::DIRECTIONS end
+
+    def test_must_have_four_compass_directions() assert_equal 4, Table::DIRECTIONS_LENGTH end
+  end
 end
 
 #--------------
 
 module ToyRobot
-  class Robot; end
-
-  class SafeRobot < Robot
-    def check_after() valid? ? '' : (revert; 'Invalid') end
-
-    def guard() valid? ? '' : 'Must start with a valid Place command' end
-
-    def move
-      s = guard
-      (super; s = check_after) if s.empty?
-      s
-    end
-
-    def place(location=[0, 0], direction='EAST') super; check_after end
-
-    def report() "At #{position}, facing #{direction}" end
-
-    def turn_left
-      s = guard
-      (super; s = check_after) if s.empty?
-      s
-    end
-
-    def turn_right
-      s = guard
-      (super; s = check_after) if s.empty?
-      s
-    end
-  end
-
   class Robot
     attr_reader :direction
     attr_reader :position
@@ -289,6 +291,34 @@ module ToyRobot
     end
   end
 
+  class SafeRobot < Robot
+    def check_after() valid? ? '' : (revert; 'Invalid') end
+
+    def guard() valid? ? '' : 'Must start with a valid Place command' end
+
+    def move
+      s = guard
+      (super; s = check_after) if s.empty?
+      s
+    end
+
+    def place(location=[0, 0], direction='EAST') super; check_after end
+
+    def report() "At #{position}, facing #{direction}" end
+
+    def turn_left
+      s = guard
+      (super; s = check_after) if s.empty?
+      s
+    end
+
+    def turn_right
+      s = guard
+      (super; s = check_after) if s.empty?
+      s
+    end
+  end
+
   class Table
     DIRECTIONS =         %w[  EAST   NORTH     WEST    SOUTH  ]
     DIRECTIONS_INCREMENT = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
@@ -296,3 +326,54 @@ module ToyRobot
     OKAY_DIMENSION = 0..4
   end
 end
+
+#--------------
+
+module ToyRobot
+  class Run
+    def initialize() @robot = SafeRobot.new end
+
+    def feed(input='') input.split("\n").each{|e| feed_line e} end
+
+    def feed_line(input='')
+      result = '' # Define in scope.
+      tokens = tokenize input
+      keyword = tokens.first
+#     puts keyword
+      result = case keyword
+      when 'left'
+        @robot.turn_left
+      when 'move'
+        @robot.move
+      when 'place'
+        @robot.place
+      when 'report'
+        @robot.report
+      when 'right'
+        @robot.turn_right
+      else
+        'Invalid keyword'
+      end
+      result
+    end
+
+    def tokenize(line)
+      line.split(/[, ]/).map(&:strip).map &:downcase
+    end
+  end
+
+  class Loop
+    def initialize
+      @robot = ToyRobot::Run.new
+      puts 'Welcome to the toy robot.'
+    end
+
+    def run
+      loop do
+        puts @robot.feed gets
+      end
+    end
+  end
+end
+
+# ToyRobot::Loop.new.run
