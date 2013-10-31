@@ -111,49 +111,52 @@ class TestToyRobot < MiniTest::Unit::TestCase
     @robot.move
     assert_equal 'EAST', @robot.direction
     assert_equal [1, 0], @robot.position
+    @robot.make_valid
     direction = 'NORTH'
     @robot.orient direction
     @robot.move
     assert_equal direction, @robot.direction
-    assert_equal [1, 1],    @robot.position
+    assert_equal [0, 1],    @robot.position
   end
 
   def test_can_turn_left
     @robot.make_valid
-    @robot.make_valid
     @robot.turn_left
     assert_equal 'NORTH', @robot.direction
-    (0...            ToyRobotTable::DIRECTIONS_LENGTH).each do |i|
-      @robot.orient (ToyRobotTable::DIRECTIONS.at i)
-      @robot.turn_left
-      expect = ToyRobotTable::DIRECTIONS.at(i + 1 %
-               ToyRobotTable::DIRECTIONS_LENGTH)
-      assert_equal expect, @robot.direction
-    end
+    @robot.turn_left
+    assert_equal 'WEST',  @robot.direction
+    @robot.turn_left
+    assert_equal 'SOUTH', @robot.direction
+    @robot.turn_left
+    assert_equal 'EAST',  @robot.direction
   end
 
   def test_can_turn_right
     @robot.make_valid
     @robot.turn_right
     assert_equal 'SOUTH', @robot.direction
-    (0...            ToyRobotTable::DIRECTIONS_LENGTH).each do |i|
-      @robot.orient (ToyRobotTable::DIRECTIONS.at i)
-      @robot.turn_right
-      expect = ToyRobotTable::DIRECTIONS.at(i - 1 %
-               ToyRobotTable::DIRECTIONS_LENGTH)
-      assert_equal expect, @robot.direction
-    end
+    @robot.turn_right
+    assert_equal 'WEST',  @robot.direction
+    @robot.turn_right
+    assert_equal 'NORTH', @robot.direction
+    @robot.turn_right
+    assert_equal 'EAST',  @robot.direction
   end
 end
 
+class TestSafeToyRobot < MiniTest::Unit::TestCase
+  def setup
+    @robot = ToyRobot.new
+  end
+end
 
 class ToyRobotTable
+  DIRECTIONS =         %w[  EAST   NORTH     WEST    SOUTH  ]
+  DIRECTIONS_INCREMENT = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
+  DIRECTIONS_LENGTH = DIRECTIONS.length
   OKAY_DIMENSION = 0..4
   EDGES = [ OKAY_DIMENSION.end,   OKAY_DIMENSION.end,
             OKAY_DIMENSION.begin, OKAY_DIMENSION.begin ]
-  DIRECTIONS = %w[ EAST NORTH WEST SOUTH ]
-  DIRECTIONS_INCREMENT = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
-  DIRECTIONS_LENGTH = DIRECTIONS.length
 end
 
 class ToyRobot
@@ -181,36 +184,51 @@ class ToyRobot
     make_valid
   end
 
-  def orient(direction)
-    @save_direction, @direction = @direction, direction
-  end
+  def orient(direction) @save_direction, @direction = @direction, direction end
 
-  def reposition(point)
-    @save_position, @position = @position, point
-  end
+  def reposition(point) @save_position, @position = @position, point end
 
-  def revert
-    @direction = @save_direction
-    @position  = @save_position
-  end
+  def revert() @direction, @position = @save_direction, @save_position end
 
   def move
     raise unless ToyRobotTable::DIRECTIONS.include? @direction
-    which =      ToyRobotTable::DIRECTIONS.index @direction
+    which     =  ToyRobotTable::DIRECTIONS.index    @direction
     increment =  ToyRobotTable::DIRECTIONS_INCREMENT.at which
     new_position = @position.each_index.map{|i| (@position.at i) + (increment.at i)}
     reposition new_position
   end
 
-  def turn_left
+  def turn_left () turn  1 end
+  def turn_right() turn -1 end
+
+  def turn(increment)
+    raise unless [-1, 1].include? increment
     which = ToyRobotTable::DIRECTIONS.index @direction
-    orient  ToyRobotTable::DIRECTIONS.at(which + 1 %
+    sum   = ToyRobotTable::DIRECTIONS_LENGTH + which + increment
+    orient  ToyRobotTable::DIRECTIONS.at(sum %
             ToyRobotTable::DIRECTIONS_LENGTH)
+  end
+end
+
+class SafeToyRobot < ToyRobot
+
+  def move
+    super
+    revert unless valid?
+  end
+
+  def turn_left
+    super
+    revert unless valid?
   end
 
   def turn_right
-    which = ToyRobotTable::DIRECTIONS.index @direction
-    orient  ToyRobotTable::DIRECTIONS.at(which - 1 %
-            ToyRobotTable::DIRECTIONS_LENGTH)
+    super
+    revert unless valid?
+  end
+
+  def place
+    super
+    revert unless valid?
   end
 end
