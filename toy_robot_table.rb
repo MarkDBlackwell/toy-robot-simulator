@@ -3,7 +3,7 @@
 =begin
 Author: Mark D. Blackwell
 Dates:
-October 31, 2013 - create
+November 1, 2013 - create
 
 Based on:
 A Test Ruby Program
@@ -11,7 +11,6 @@ From Locomote (http://www.locomote.com), an Australian based development company
 
 Ref:
 http://rubylearning.com/blog/2011/07/28/how-do-i-test-my-code-with-minitest/
-
 =end
 
 require 'minitest/autorun'
@@ -20,10 +19,22 @@ module ToyRobot
   class TestRun < MiniTest::Unit::TestCase
     def setup() @runner = Run.new end
 
+    def test_letter_a
+      input = <<END_OF_INPUT
+PLACE
+REPORT
+END_OF_INPUT
+      s = input.each_line.map{|e| @runner.feed_line e}.join ''
+      expect = 'At [0, 0], facing EAST'
+      assert_equal expect, s
+    end
+
     def test_null_input
       s = @runner.feed_line
       assert_equal '', s
     end
+
+    def test_startup_message() assert_match /Welcome/, @runner.startup_message end
 
     def test_tokenizer
       expect = %w[ a b ]
@@ -31,21 +42,6 @@ module ToyRobot
       assert_equal expect, comma
       space = @runner.tokenize 'a b'
       assert_equal expect, space
-    end
-
-    def test_startup
-    end
-
-    def test_letter_a
-      input = <<END_OF_INPUT
-PLACE
-REPORT
-END_OF_INPUT
-      input.each_line do |e|
-        s = @runner.feed_line e
-        expect = 'At [0, 0], facing EAST'
-        assert_equal expect, s
-      end
     end
   end
 
@@ -91,16 +87,21 @@ END_OF_INPUT
       assert_equal sample, @robot.position
     end
 
-    def test_can_revert
+    def test_can_revert_direction
+      direction = 'NORTH'
       @robot.make_valid
-      direction, point = 'NORTH', [1, 1]
       @robot.orient direction
-      @robot.reposition point
       assert_equal direction, @robot.direction
-      assert_equal point,     @robot.position
-# Revert the robot (and verify):
       @robot.revert
       assert_equal 'EAST', @robot.direction
+    end
+
+    def test_can_revert_position
+      position = [1, 1]
+      @robot.make_valid
+      @robot.reposition position
+      assert_equal position, @robot.position
+      @robot.revert
       assert_equal [0, 0], @robot.position
     end
 
@@ -162,7 +163,7 @@ END_OF_INPUT
     def test_after_valid_place_can_move
       @robot.place
       s = @robot.move
-#     puts s
+#puts s
       assert_equal '', s
       assert_equal 'EAST', @robot.direction
       assert_equal [1, 0], @robot.position
@@ -171,7 +172,7 @@ END_OF_INPUT
     def test_after_valid_place_can_turn_left
       @robot.place
       s = @robot.turn_left
-#     puts s
+#puts s
       assert_equal '', s
       assert_equal 'NORTH', @robot.direction
       assert_equal [0, 0],  @robot.position
@@ -180,7 +181,7 @@ END_OF_INPUT
     def test_after_valid_place_can_turn_right
       @robot.place
       s = @robot.turn_right
-#     puts s
+#puts s
       assert_equal '', s
       assert_equal 'SOUTH', @robot.direction
       assert_equal [0, 0],  @robot.position
@@ -188,7 +189,7 @@ END_OF_INPUT
 
     def test_before_valid_place_discards_move
       s = @robot.move
-#     puts s
+#puts s
       assert_equal 'Must start with a valid Place command', s
       assert_equal 'bad',    @robot.direction
       assert_equal [-1, -1], @robot.position
@@ -196,7 +197,7 @@ END_OF_INPUT
 
     def test_before_valid_place_discards_turn_left
       s = @robot.turn_left
-#     puts s
+#puts s
       assert_equal 'Must start with a valid Place command', s
       assert_equal 'bad',    @robot.direction
       assert_equal [-1, -1], @robot.position
@@ -204,23 +205,33 @@ END_OF_INPUT
 
     def test_before_valid_place_discards_turn_right
       s = @robot.turn_right
-#     puts s
+#puts s
       assert_equal 'Must start with a valid Place command', s
       assert_equal 'bad',    @robot.direction
       assert_equal [-1, -1], @robot.position
     end
 
+    def test_invalid_move_after_right
+# Covers a bug which emerged in user testing.
+      @robot.place
+      @robot.turn_right
+      assert_equal 'SOUTH', @robot.direction
+      @robot.move
+#print '@robot.report='; p @robot.report
+      assert_equal 'SOUTH', @robot.direction
+    end
+
     def test_report_from_custom_position
       @robot.place [2, 3], 'WEST'
       s = @robot.report
-#     puts s
+#puts s
       assert_equal 'At [2, 3], facing WEST', s
     end
 
     def test_report_from_default_position
       @robot.place
       s = @robot.report
-#     puts s
+#puts s
       assert_equal 'At [0, 0], facing EAST', s
     end
   end
@@ -262,14 +273,20 @@ module ToyRobot
       reposition new_position
     end
 
-    def orient(direction) @save_direction, @direction = @direction, direction end
-
-    def place(location=[0, 0], direction='EAST')
-      orient direction
-      reposition location
+    def orient(direction)
+      @save_direction, @direction = @direction, direction
+      @save_position = @position
     end
 
-    def reposition(point) @save_position, @position = @position, point end
+    def place(position=[0, 0], direction='EAST')
+      @save_position,  @position  = @position,  position
+      @save_direction, @direction = @direction, direction
+    end
+
+    def reposition(position)
+      @save_position, @position = @position, position
+      @save_direction = @direction
+    end
 
     def revert() @direction, @position = @save_direction, @save_position end
 
@@ -331,15 +348,21 @@ end
 
 module ToyRobot
   class Run
+    COMMANDS = 'Place, Left, Right, Move & Report'
+
     def initialize() @robot = SafeRobot.new end
 
     def feed(input='') input.split("\n").each{|e| feed_line e} end
 
     def feed_line(input='')
       result = '' # Define in scope.
-      tokens = tokenize input
+      s = input.chomp
+#print 's='; p s
+      tokens = tokenize s
+#print 'tokens='; p tokens
+      return '' if tokens.empty?
       keyword = tokens.first
-#     puts keyword
+#puts keyword
       result = case keyword
       when 'left'
         @robot.turn_left
@@ -357,6 +380,11 @@ module ToyRobot
       result
     end
 
+    def startup_message
+      ["Welcome to the toy robot." ,
+       "Commands are #{COMMANDS}." ].join ' '
+    end
+
     def tokenize(line)
       line.split(/[, ]/).map(&:strip).map &:downcase
     end
@@ -365,15 +393,19 @@ module ToyRobot
   class Loop
     def initialize
       @robot = ToyRobot::Run.new
-      puts 'Welcome to the toy robot.'
+      puts @robot.startup_message
     end
 
     def run
       loop do
-        puts @robot.feed gets
+        s = @robot.feed_line gets
+        puts s unless s.empty?
       end
     end
   end
 end
+
+# To run the automated tests, comment the Loop line below.
+# To run the simulator instead, uncomment it:
 
 # ToyRobot::Loop.new.run
