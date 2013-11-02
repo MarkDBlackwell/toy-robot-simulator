@@ -4,14 +4,17 @@ Dates:
 November 1, 2013 - create
 
 Based on:
-A Test Ruby Program
-From Locomote (http://www.locomote.com), an Australian based development company.
+A Ruby writing test problem.
+The problem was posed by Locomote (http://www.locomote.com), an Australian based development company.
 
 Ref:
 http://rubylearning.com/blog/2011/07/28/how-do-i-test-my-code-with-minitest/
 =end
 
 require 'minitest/autorun'
+
+#--------------
+# TESTS:
 
 module ToyRobot
   class TestRun < MiniTest::Unit::TestCase
@@ -27,16 +30,16 @@ END_OF_INPUT
       assert_equal expect, s
     end
 
-    def test_coordinate_arguments_accepted
-      expect = 'At [2, 3], facing EAST'
-      @runner.feed_line 'place 2 3'
+    def test_coordinate_and_direction_arguments_accepted
+      expect = 'At [2, 3], facing WEST'
+      @runner.feed_line 'place 2 3 west'
       s = @runner.feed_line 'report'
       assert_equal expect, s
     end
 
-    def test_coordinate_and_direction_arguments_accepted
-      expect = 'At [2, 3], facing WEST'
-      @runner.feed_line 'place 2 3 west'
+    def test_coordinate_arguments_accepted
+      expect = 'At [2, 3], facing EAST'
+      @runner.feed_line 'place 2 3'
       s = @runner.feed_line 'report'
       assert_equal expect, s
     end
@@ -296,7 +299,7 @@ END_OF_INPUT
       assert_equal [-1, -1], @robot.position
     end
 
-    def test_invalid_move_after_right
+    def test_invalid_move_after_turn
 # Covers a bug which emerged in user testing.
       @robot.place
       @robot.turn_right
@@ -336,6 +339,7 @@ END_OF_INPUT
 end
 
 #--------------
+# ROBOT CLASSES:
 
 module ToyRobot
   class Robot
@@ -432,6 +436,7 @@ module ToyRobot
 end
 
 #--------------
+# RUNNER:
 
 module ToyRobot
   class Run
@@ -485,6 +490,9 @@ module ToyRobot
       result
     end
 
+    def process_command(keyword, args)
+    end
+
     def startup_message
       ["Welcome to the toy robot." ,
        "Commands are #{COMMANDS}." ].join ' '
@@ -509,6 +517,9 @@ module ToyRobot
     end
   end
 end
+
+#--------------
+# CHOICE (RUN OR TEST):
 
 # To run the automated tests, comment the Loop line below.
 # To run the simulator instead, uncomment it:
