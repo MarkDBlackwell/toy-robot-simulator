@@ -7,6 +7,8 @@ Based on:
 A test problem for writing Ruby.
 The problem was posed by Locomote (http://www.locomote.com), an Australian based development company.
 
+Tested using Ruby 2.0.0-p247.
+
 Ref:
 http://rubylearning.com/blog/2011/07/28/how-do-i-test-my-code-with-minitest/
 =end
