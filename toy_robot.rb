@@ -22,16 +22,60 @@ module ToyRobot
   class TestRobot < MiniTest::Unit::TestCase
     def setup() @robot = Robot.new end
 
+    def test_after_orienting_in_bad_direction_invalid
+      @robot.make_valid
+      bad_direction = 'bad'
+      @robot.orient bad_direction
+      assert ! @robot.valid?
+    end
+
+    def test_after_orienting_in_good_direction_valid
+      @robot.make_valid
+      Table::DIRECTIONS.each do |e|
+        @robot.orient e
+        assert @robot.valid?
+      end
+    end
+
+    def test_after_repositioning_with_bad_coordinates_invalid
+      @robot.make_valid
+      bad_coordinates = [-1, 5]
+      bad_coordinates.product(bad_coordinates).each do |x,y|
+        @robot.reposition [x, y]
+        assert ! @robot.valid?, "(x,y) was (#{x},#{y})"
+      end
+    end
+
+    def test_after_repositioning_with_good_coordinates_all_valid
+      @robot.make_valid
+      good_coordinates = (0..4).to_a.product((0..4).to_a)
+      good_coordinates.each do |x,y|
+        @robot.reposition [x, y]
+        assert @robot.valid?, "(x,y) was (#{x},#{y})"
+      end
+    end
+
+    def test_after_repositioning_with_good_coordinates_example_valid
+      @robot.make_valid
+      good_coordinates = [0, 0]
+      @robot.reposition good_coordinates
+      assert @robot.valid?
+    end
+
+    def test_after_the_first_place_command_valid() @robot.place; assert @robot.valid? end
+
+    def test_before_the_first_place_command_invalid() assert ! @robot.valid? end
+
     def test_can_move
       @robot.make_valid
       start_position = [2, 2]
       %w[  EAST   NORTH    WEST   SOUTH  ].zip(
-        [ [3, 2], [2, 3], [1, 2], [2, 1] ]).each do |direction,position|
+        [ [3, 2], [2, 3], [1, 2], [2, 1] ]).each do |direction,expected_position|
         @robot.reposition start_position
         @robot.orient direction
         @robot.move
+        assert_equal expected_position, @robot.position
         assert_equal direction, @robot.direction
-        assert_equal position,  @robot.position
       end
     end
 
@@ -49,10 +93,10 @@ module ToyRobot
     end
 
     def test_can_place
-      direction, position = 'any direction'.upcase, [-1, -1]
+      position, direction = [-1, -1], 'any direction'.upcase
       @robot.place position, direction
-      assert_equal direction, @robot.direction
       assert_equal position,  @robot.position
+      assert_equal direction, @robot.direction
     end
 
     def test_can_reposition
@@ -94,45 +138,61 @@ module ToyRobot
         assert_equal e, @robot.direction
       end
     end
-
-    def test_invalid_after_orienting_in_bad_direction
-      @robot.make_valid
-      bad_direction = 'bad'
-      @robot.orient bad_direction
-      assert ! @robot.valid?
-    end
-
-    def test_invalid_after_repositioning_with_bad_coordinates
-      @robot.make_valid
-      bad_coordinates = [-1, 5]
-      bad_coordinates.zip(bad_coordinates).each do |x,y|
-        @robot.reposition [x, y]
-        assert ! @robot.valid?, "(x,y) was (#{x},#{y})"
-      end
-    end
-
-    def test_invalid_before_the_first_place_command() assert ! @robot.valid? end
-
-    def test_valid_after_orienting_in_good_direction
-      @robot.make_valid
-      Table::DIRECTIONS.each do |e|
-        @robot.orient e
-        assert @robot.valid?
-      end
-    end
-
-    def test_valid_after_repositioning_with_good_coordinates
-      @robot.make_valid
-      good_coordinates = [0, 0]
-      @robot.reposition good_coordinates
-      assert @robot.valid?
-    end
-
-    def test_valid_after_the_first_place_command() @robot.place; assert @robot.valid? end
   end
 
   class TestRun < MiniTest::Unit::TestCase
     def setup() @runner = Run.new end
+
+    def test_arguments_coordinate_accepted
+      expect = 'At [2, 3], facing EAST'
+      @runner.feed_line 'place 2 3'
+      s = @runner.feed_line 'report'
+      assert_equal expect, s
+    end
+
+    def test_arguments_coordinate_and_direction_accepted
+      expect = 'At [2, 3], facing WEST'
+      @runner.feed_line 'place 2 3 west'
+      s = @runner.feed_line 'report'
+      assert_equal expect, s
+    end
+
+    def test_arguments_coordinate_noninteger_rejected
+      expect = 'Argument must be a nonnegative integer'
+      s = @runner.feed_line 'place a 0'
+      assert_equal expect, s
+      s = @runner.feed_line 'place 0 a'
+      assert_equal expect, s
+    end
+
+    def test_arguments_coordinate_out_of_range_rejected
+      expect = 'Argument must not exceed 4'
+      s = @runner.feed_line 'place 0 5'
+      assert_equal expect, s
+      s = @runner.feed_line 'place 5 0'
+      assert_equal expect, s
+    end
+
+    def test_arguments_overfew_place_rejected
+      expect = 'Too few arguments'
+      s = @runner.feed_line 'place 1'
+      assert_equal expect, s
+    end
+
+    def test_arguments_overmany_place_rejected
+      expect = 'Too many arguments'
+      s = @runner.feed_line 'place 1,2,a,b'
+      assert_equal expect, s
+    end
+
+    def test_arguments_overmany_rejected
+      expect = 'That command allows no arguments'
+      first = @runner.feed_line 'place'
+      %w[ left move report right ].map{|keyword| "#{keyword} a"}.each do |e|
+        s = @runner.feed_line e
+        assert_equal expect, s
+      end
+    end
 
     def test_basic_input
       expect = 'At [0, 0], facing EAST'
@@ -144,60 +204,9 @@ END_OF_INPUT
       assert_equal expect, s
     end
 
-    def test_coordinate_and_direction_arguments_accepted
-      expect = 'At [2, 3], facing WEST'
-      @runner.feed_line 'place 2 3 west'
-      s = @runner.feed_line 'report'
-      assert_equal expect, s
-    end
-
-    def test_coordinate_arguments_accepted
-      expect = 'At [2, 3], facing EAST'
-      @runner.feed_line 'place 2 3'
-      s = @runner.feed_line 'report'
-      assert_equal expect, s
-    end
-
-    def test_coordinate_arguments_out_of_range_rejected
-      expect = 'Argument must not exceed 4'
-      s = @runner.feed_line 'place 0 5'
-      assert_equal expect, s
-      s = @runner.feed_line 'place 5 0'
-      assert_equal expect, s
-    end
-
-    def test_extra_arguments_rejected
-      expect = 'That command allows no arguments'
-      first = @runner.feed_line 'place'
-      %w[  left\ a   move\ a   report\ a   right\ a  ].each do |e|
-        s = @runner.feed_line e
-        assert_equal expect, s
-      end
-    end
-
-    def test_noninteger_coordinate_arguments_rejected
-      expect = 'Argument must be a nonnegative integer'
-      s = @runner.feed_line 'place a 0'
-      assert_equal expect, s
-      s = @runner.feed_line 'place 0 a'
-      assert_equal expect, s
-    end
-
     def test_null_input
       s = @runner.feed_line
       assert_equal '', s
-    end
-
-    def test_overfew_place_arguments_rejected
-      expect = 'Too few arguments'
-      s = @runner.feed_line 'place 1'
-      assert_equal expect, s
-    end
-
-    def test_overmany_place_arguments_rejected
-      expect = 'Too many arguments'
-      s = @runner.feed_line 'place 1,2,a,b'
-      assert_equal expect, s
     end
 
     def test_prescribed_input_case_letter_a
@@ -250,7 +259,7 @@ END_OF_INPUT
   class TestSafeRobot < MiniTest::Unit::TestCase
     def setup() @robot = SafeRobot.new end
 
-    def test_after_valid_place_can_move
+    def test_after_valid_place_move_accepted
       @robot.place
       s = @robot.move
 #puts s
@@ -259,7 +268,7 @@ END_OF_INPUT
       assert_equal [1, 0], @robot.position
     end
 
-    def test_after_valid_place_can_turn_left
+    def test_after_valid_place_turn_left_accepted
       @robot.place
       s = @robot.turn_left
 #puts s
@@ -268,7 +277,7 @@ END_OF_INPUT
       assert_equal [0, 0],  @robot.position
     end
 
-    def test_after_valid_place_can_turn_right
+    def test_after_valid_place_turn_right_accepted
       @robot.place
       s = @robot.turn_right
 #puts s
@@ -277,7 +286,7 @@ END_OF_INPUT
       assert_equal [0, 0],  @robot.position
     end
 
-    def test_before_valid_place_discards_move
+    def test_before_valid_place_move_rejected
       s = @robot.move
 #puts s
       assert_equal 'Must start with a valid Place command', s
@@ -285,7 +294,7 @@ END_OF_INPUT
       assert_equal [-1, -1], @robot.position
     end
 
-    def test_before_valid_place_discards_turn_left
+    def test_before_valid_place_turn_left_rejected
       s = @robot.turn_left
 #puts s
       assert_equal 'Must start with a valid Place command', s
@@ -293,7 +302,7 @@ END_OF_INPUT
       assert_equal [-1, -1], @robot.position
     end
 
-    def test_before_valid_place_discards_turn_right
+    def test_before_valid_place_turn_right_rejected
       s = @robot.turn_right
 #puts s
       assert_equal 'Must start with a valid Place command', s
@@ -468,22 +477,22 @@ module ToyRobot
       return '' if tokens.empty?
       keyword = tokens.first
 #puts keyword
+      args = tokens.drop 1 # Drop the keyword.
       if %w[left move report right].include? keyword
-        return 'That command allows no arguments' if tokens.length > 1
+        return 'That command allows no arguments' unless args.empty?
       end
       if 'place' == keyword
-        return 'Too few arguments' if 2 == tokens.length
-        return 'Too many arguments' if tokens.length > 4
+        return 'Too few arguments' if 1 == args.length
+        return 'Too many arguments' if args.length > 3
       end
-      args = tokens.drop 1
       if args.length >= 2
-        args[1] = (1..2).map{|i| tokens.at i}.map do |e|
+        args[1] = (0..1).map{|i| args.at i}.map do |e|
           return 'Argument must be a nonnegative integer' if e =~ /\D/
           coordinate = e.to_i
-          return 'Argument must not exceed 4' unless (0..4).include? coordinate
+          return "Argument must not exceed #{Table::OKAY_DIMENSION.end}" unless Table::OKAY_DIMENSION.include? coordinate
           coordinate
         end
-        args = args.drop 1
+        args = args.drop 1 # Drop first coordinate (now included in second argument).
       end
 #print 'args='; p args
       invoke_command keyword, args
