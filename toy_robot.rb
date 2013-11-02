@@ -1,6 +1,4 @@
 =begin
-=end
-=begin
 Author: Mark D. Blackwell
 Dates:
 November 1, 2013 - create
@@ -18,6 +16,16 @@ require 'minitest/autorun'
 module ToyRobot
   class TestRun < MiniTest::Unit::TestCase
     def setup() @runner = Run.new end
+
+    def test_basic_input
+      input = <<END_OF_INPUT
+PLACE
+REPORT
+END_OF_INPUT
+      s = input.each_line.map{|e| @runner.feed_line e}.join ''
+      expect = 'At [0, 0], facing EAST'
+      assert_equal expect, s
+    end
 
     def test_coordinate_arguments_accepted
       expect = 'At [2, 3], facing EAST'
@@ -50,16 +58,6 @@ module ToyRobot
       end
     end
 
-    def test_letter_a
-      input = <<END_OF_INPUT
-PLACE
-REPORT
-END_OF_INPUT
-      s = input.each_line.map{|e| @runner.feed_line e}.join ''
-      expect = 'At [0, 0], facing EAST'
-      assert_equal expect, s
-    end
-
     def test_noninteger_coordinate_arguments_rejected
       expect = 'Argument must be a nonnegative integer'
       s = @runner.feed_line 'place a 0'
@@ -82,6 +80,42 @@ END_OF_INPUT
     def test_overmany_place_arguments_rejected
       expect = 'Too many arguments'
       s = @runner.feed_line 'place 1,2,a,b'
+      assert_equal expect, s
+    end
+
+    def test_prescribed_input_case_letter_a
+      input = <<END_OF_INPUT
+PLACE 0,0,NORTH
+MOVE
+REPORT
+END_OF_INPUT
+      s = input.each_line.map{|e| @runner.feed_line e}.join ''
+      expect = 'At [0, 1], facing NORTH'
+      assert_equal expect, s
+    end
+
+    def test_prescribed_input_case_letter_b
+      input = <<END_OF_INPUT
+PLACE 0,0,NORTH
+LEFT
+REPORT
+END_OF_INPUT
+      s = input.each_line.map{|e| @runner.feed_line e}.join ''
+      expect = 'At [0, 0], facing WEST'
+      assert_equal expect, s
+    end
+
+    def test_prescribed_input_case_letter_c
+      input = <<END_OF_INPUT
+PLACE 1,2,EAST
+MOVE
+MOVE
+LEFT
+MOVE
+REPORT
+END_OF_INPUT
+      s = input.each_line.map{|e| @runner.feed_line e}.join ''
+      expect = 'At [3, 3], facing NORTH'
       assert_equal expect, s
     end
 
@@ -479,4 +513,4 @@ end
 # To run the automated tests, comment the Loop line below.
 # To run the simulator instead, uncomment it:
 
- ToyRobot::Loop.new.run
+# ToyRobot::Loop.new.run
