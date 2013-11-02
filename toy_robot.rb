@@ -3,11 +3,13 @@ Author: Mark D. Blackwell
 Dates:
 November 2, 2013 - create
 
-Based on:
-A test problem for writing Ruby.
-The problem was posed by Locomote (http://www.locomote.com), an Australian based development company.
+Toy Robot Simulator
 
-See bottom for choices.
+Based on:
+A problem for testing the writing of Ruby code.
+Posed by Locomote (http://www.locomote.com), an Australian based development company.
+
+For choices, see bottom.
 
 Tested using Ruby 2.0.0-p247.
 
