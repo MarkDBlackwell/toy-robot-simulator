@@ -4,7 +4,7 @@ Dates:
 November 1, 2013 - create
 
 Based on:
-A Ruby writing test problem.
+A test problem for writing Ruby.
 The problem was posed by Locomote (http://www.locomote.com), an Australian based development company.
 
 Ref:
@@ -21,12 +21,12 @@ module ToyRobot
     def setup() @runner = Run.new end
 
     def test_basic_input
+      expect = 'At [0, 0], facing EAST'
       input = <<END_OF_INPUT
 PLACE
 REPORT
 END_OF_INPUT
       s = input.each_line.map{|e| @runner.feed_line e}.join ''
-      expect = 'At [0, 0], facing EAST'
       assert_equal expect, s
     end
 
@@ -87,28 +87,29 @@ END_OF_INPUT
     end
 
     def test_prescribed_input_case_letter_a
+      expect = 'At [0, 1], facing NORTH'
       input = <<END_OF_INPUT
 PLACE 0,0,NORTH
 MOVE
 REPORT
 END_OF_INPUT
       s = input.each_line.map{|e| @runner.feed_line e}.join ''
-      expect = 'At [0, 1], facing NORTH'
       assert_equal expect, s
     end
 
     def test_prescribed_input_case_letter_b
+      expect = 'At [0, 0], facing WEST'
       input = <<END_OF_INPUT
 PLACE 0,0,NORTH
 LEFT
 REPORT
 END_OF_INPUT
       s = input.each_line.map{|e| @runner.feed_line e}.join ''
-      expect = 'At [0, 0], facing WEST'
       assert_equal expect, s
     end
 
     def test_prescribed_input_case_letter_c
+      expect = 'At [3, 3], facing NORTH'
       input = <<END_OF_INPUT
 PLACE 1,2,EAST
 MOVE
@@ -118,7 +119,6 @@ MOVE
 REPORT
 END_OF_INPUT
       s = input.each_line.map{|e| @runner.feed_line e}.join ''
-      expect = 'At [3, 3], facing NORTH'
       assert_equal expect, s
     end
 
@@ -469,11 +469,11 @@ module ToyRobot
         end
         args = args.drop 1
       end
+#print 'args='; p args
       invoke_command keyword, args
     end
 
     def invoke_command(keyword, args)
-#print 'args='; p args
       case keyword
       when 'left'
         @robot.turn_left
@@ -495,9 +495,7 @@ module ToyRobot
        "Commands are #{COMMANDS}." ].join ' '
     end
 
-    def tokenize(line)
-      line.split(/[, ]/).map(&:strip).map &:downcase
-    end
+    def tokenize(line) line.split(/[, ]/).map(&:strip).map &:downcase end
   end
 
   class Loop
