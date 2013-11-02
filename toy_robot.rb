@@ -447,10 +447,7 @@ module ToyRobot
     def feed(input='') input.split("\n").each{|e| feed_line e} end
 
     def feed_line(input='')
-      result = '' # Define in scope.
-      s = input.chomp
-#print 's='; p s
-      tokens = tokenize s
+      tokens = tokenize input.chomp
 #print 'tokens='; p tokens
       return '' if tokens.empty?
       keyword = tokens.first
@@ -472,8 +469,12 @@ module ToyRobot
         end
         args = args.drop 1
       end
+      invoke_command keyword, args
+    end
+
+    def invoke_command(keyword, args)
 #print 'args='; p args
-      result = case keyword
+      case keyword
       when 'left'
         @robot.turn_left
       when 'move'
@@ -487,10 +488,6 @@ module ToyRobot
       else
         'Invalid keyword'
       end
-      result
-    end
-
-    def process_command(keyword, args)
     end
 
     def startup_message
