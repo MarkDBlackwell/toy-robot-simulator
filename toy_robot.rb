@@ -19,6 +19,118 @@ require 'minitest/autorun'
 # TESTS:
 
 module ToyRobot
+  class TestRobot < MiniTest::Unit::TestCase
+    def setup() @robot = Robot.new end
+
+    def test_can_move
+      @robot.make_valid
+      start_position = [2, 2]
+      %w[  EAST   NORTH    WEST   SOUTH  ].zip(
+        [ [3, 2], [2, 3], [1, 2], [2, 1] ]).each do |direction,position|
+        @robot.reposition start_position
+        @robot.orient direction
+        @robot.move
+        assert_equal direction, @robot.direction
+        assert_equal position,  @robot.position
+      end
+    end
+
+    def test_can_move_east
+      @robot.make_valid
+      @robot.move
+      assert_equal 'EAST', @robot.direction
+      assert_equal [1, 0], @robot.position
+    end
+
+    def test_can_orient
+      sample = 'any direction'
+      @robot.orient sample
+      assert_equal sample, @robot.direction
+    end
+
+    def test_can_place
+      direction, position = 'any direction'.upcase, [-1, -1]
+      @robot.place position, direction
+      assert_equal direction, @robot.direction
+      assert_equal position,  @robot.position
+    end
+
+    def test_can_reposition
+      sample = [-1, -1]
+      @robot.reposition sample
+      assert_equal sample, @robot.position
+    end
+
+    def test_can_revert_direction
+      direction = 'NORTH'
+      @robot.make_valid
+      @robot.orient direction
+      assert_equal direction, @robot.direction
+      @robot.revert
+      assert_equal 'EAST', @robot.direction
+    end
+
+    def test_can_revert_position
+      position = [1, 1]
+      @robot.make_valid
+      @robot.reposition position
+      assert_equal position, @robot.position
+      @robot.revert
+      assert_equal [0, 0], @robot.position
+    end
+
+    def test_can_turn_left
+      @robot.make_valid
+      %w[ NORTH WEST SOUTH EAST ].each do |e|
+        @robot.turn_left
+        assert_equal e, @robot.direction
+      end
+    end
+
+    def test_can_turn_right
+      @robot.make_valid
+      %w[ SOUTH WEST NORTH EAST ].each do |e|
+        @robot.turn_right
+        assert_equal e, @robot.direction
+      end
+    end
+
+    def test_invalid_after_orienting_in_bad_direction
+      @robot.make_valid
+      bad_direction = 'bad'
+      @robot.orient bad_direction
+      assert ! @robot.valid?
+    end
+
+    def test_invalid_after_repositioning_with_bad_coordinates
+      @robot.make_valid
+      bad_coordinates = [-1, 5]
+      bad_coordinates.zip(bad_coordinates).each do |x,y|
+        @robot.reposition [x, y]
+        assert ! @robot.valid?, "(x,y) was (#{x},#{y})"
+      end
+    end
+
+    def test_invalid_before_the_first_place_command() assert ! @robot.valid? end
+
+    def test_valid_after_orienting_in_good_direction
+      @robot.make_valid
+      Table::DIRECTIONS.each do |e|
+        @robot.orient e
+        assert @robot.valid?
+      end
+    end
+
+    def test_valid_after_repositioning_with_good_coordinates
+      @robot.make_valid
+      good_coordinates = [0, 0]
+      @robot.reposition good_coordinates
+      assert @robot.valid?
+    end
+
+    def test_valid_after_the_first_place_command() @robot.place; assert @robot.valid? end
+  end
+
   class TestRun < MiniTest::Unit::TestCase
     def setup() @runner = Run.new end
 
@@ -133,118 +245,6 @@ END_OF_INPUT
       space = @runner.tokenize 'a b'
       assert_equal expect, space
     end
-  end
-
-  class TestRobot < MiniTest::Unit::TestCase
-    def setup() @robot = Robot.new end
-
-    def test_can_move
-      @robot.make_valid
-      start_location = [2, 2]
-      %w[  EAST   NORTH    WEST   SOUTH  ].zip(
-        [ [3, 2], [2, 3], [1, 2], [2, 1] ]).each do |direction,location|
-        @robot.reposition start_location
-        @robot.orient direction
-        @robot.move
-        assert_equal direction, @robot.direction
-        assert_equal location,  @robot.position
-      end
-    end
-
-    def test_can_move_east
-      @robot.make_valid
-      @robot.move
-      assert_equal 'EAST', @robot.direction
-      assert_equal [1, 0], @robot.position
-    end
-
-    def test_can_orient
-      sample = 'any direction'
-      @robot.orient sample
-      assert_equal sample, @robot.direction
-    end
-
-    def test_can_place
-      direction, position = 'any direction'.upcase, [-1, -1]
-      @robot.place position, direction
-      assert_equal direction, @robot.direction
-      assert_equal position,  @robot.position
-    end
-
-    def test_can_reposition
-      sample = [-1, -1]
-      @robot.reposition sample
-      assert_equal sample, @robot.position
-    end
-
-    def test_can_revert_direction
-      direction = 'NORTH'
-      @robot.make_valid
-      @robot.orient direction
-      assert_equal direction, @robot.direction
-      @robot.revert
-      assert_equal 'EAST', @robot.direction
-    end
-
-    def test_can_revert_position
-      position = [1, 1]
-      @robot.make_valid
-      @robot.reposition position
-      assert_equal position, @robot.position
-      @robot.revert
-      assert_equal [0, 0], @robot.position
-    end
-
-    def test_can_turn_left
-      @robot.make_valid
-      %w[ NORTH WEST SOUTH EAST ].each do |e|
-        @robot.turn_left
-        assert_equal e, @robot.direction
-      end
-    end
-
-    def test_can_turn_right
-      @robot.make_valid
-      %w[ SOUTH WEST NORTH EAST ].each do |e|
-        @robot.turn_right
-        assert_equal e, @robot.direction
-      end
-    end
-
-    def test_invalid_after_orienting_in_bad_direction
-      @robot.make_valid
-      bad_direction = 'bad'
-      @robot.orient bad_direction
-      assert ! @robot.valid?
-    end
-
-    def test_invalid_after_repositioning_with_bad_coordinates
-      @robot.make_valid
-      bad_coordinates = [-1, 5]
-      bad_coordinates.zip(bad_coordinates).each do |x,y|
-        @robot.reposition [x, y]
-        assert ! @robot.valid?, "(x,y) was (#{x},#{y})"
-      end
-    end
-
-    def test_invalid_before_the_first_place_command() assert ! @robot.valid? end
-
-    def test_valid_after_orienting_in_good_direction
-      @robot.make_valid
-      Table::DIRECTIONS.each do |e|
-        @robot.orient e
-        assert @robot.valid?
-      end
-    end
-
-    def test_valid_after_repositioning_with_good_coordinates
-      @robot.make_valid
-      good_coordinates = [0, 0]
-      @robot.reposition good_coordinates
-      assert @robot.valid?
-    end
-
-    def test_valid_after_the_first_place_command() @robot.place; assert @robot.valid? end
   end
 
   class TestSafeRobot < MiniTest::Unit::TestCase
@@ -441,6 +441,20 @@ end
 # RUNNER:
 
 module ToyRobot
+  class Loop
+    def initialize
+      @robot = ToyRobot::Run.new
+      puts @robot.startup_message
+    end
+
+    def run
+      loop do
+        s = @robot.feed_line gets
+        puts s unless s.empty?
+      end
+    end
+  end
+
   class Run
     COMMANDS = 'Place, Left, Right, Move & Report'
 
@@ -498,20 +512,6 @@ module ToyRobot
     end
 
     def tokenize(line) line.split(/[, ]/).map(&:strip).map &:downcase end
-  end
-
-  class Loop
-    def initialize
-      @robot = ToyRobot::Run.new
-      puts @robot.startup_message
-    end
-
-    def run
-      loop do
-        s = @robot.feed_line gets
-        puts s unless s.empty?
-      end
-    end
   end
 end
 
