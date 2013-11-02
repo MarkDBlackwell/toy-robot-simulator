@@ -19,6 +19,37 @@ module ToyRobot
   class TestRun < MiniTest::Unit::TestCase
     def setup() @runner = Run.new end
 
+    def test_coordinate_arguments_accepted
+      expect = 'At [2, 3], facing EAST'
+      @runner.feed_line 'place 2 3'
+      s = @runner.feed_line 'report'
+      assert_equal expect, s
+    end
+
+    def test_coordinate_and_direction_arguments_accepted
+      expect = 'At [2, 3], facing WEST'
+      @runner.feed_line 'place 2 3 west'
+      s = @runner.feed_line 'report'
+      assert_equal expect, s
+    end
+
+    def test_coordinate_arguments_out_of_range_rejected
+      expect = 'Argument must not exceed 4'
+      s = @runner.feed_line 'place 0 5'
+      assert_equal expect, s
+      s = @runner.feed_line 'place 5 0'
+      assert_equal expect, s
+    end
+
+    def test_extra_arguments_rejected
+      expect = 'That command allows no arguments'
+      first = @runner.feed_line 'place'
+      %w[  left\ a   move\ a   report\ a   right\ a  ].each do |e|
+        s = @runner.feed_line e
+        assert_equal expect, s
+      end
+    end
+
     def test_letter_a
       input = <<END_OF_INPUT
 PLACE
@@ -29,9 +60,29 @@ END_OF_INPUT
       assert_equal expect, s
     end
 
+    def test_noninteger_coordinate_arguments_rejected
+      expect = 'Argument must be a nonnegative integer'
+      s = @runner.feed_line 'place a 0'
+      assert_equal expect, s
+      s = @runner.feed_line 'place 0 a'
+      assert_equal expect, s
+    end
+
     def test_null_input
       s = @runner.feed_line
       assert_equal '', s
+    end
+
+    def test_overfew_place_arguments_rejected
+      expect = 'Too few arguments'
+      s = @runner.feed_line 'place 1'
+      assert_equal expect, s
+    end
+
+    def test_overmany_place_arguments_rejected
+      expect = 'Too many arguments'
+      s = @runner.feed_line 'place 1,2,a,b'
+      assert_equal expect, s
     end
 
     def test_startup_message() assert_match /Welcome/, @runner.startup_message end
@@ -75,7 +126,7 @@ END_OF_INPUT
     end
 
     def test_can_place
-      direction, position = 'any direction', [-1, -1]
+      direction, position = 'any direction'.upcase, [-1, -1]
       @robot.place position, direction
       assert_equal direction, @robot.direction
       assert_equal position,  @robot.position
@@ -279,8 +330,10 @@ module ToyRobot
     end
 
     def place(position=[0, 0], direction='EAST')
+#print 'position=';  p position
+#print 'direction='; p direction
       @save_position,  @position  = @position,  position
-      @save_direction, @direction = @direction, direction
+      @save_direction, @direction = @direction, direction.upcase
     end
 
     def reposition(position)
@@ -319,7 +372,7 @@ module ToyRobot
       s
     end
 
-    def place(location=[0, 0], direction='EAST') super; check_after end
+    def place(position=[0, 0], direction='EAST') super; check_after end
 
     def report() "At #{position}, facing #{direction}" end
 
@@ -363,13 +416,31 @@ module ToyRobot
       return '' if tokens.empty?
       keyword = tokens.first
 #puts keyword
+      if %w[left move report right].include? keyword
+        return 'That command allows no arguments' if tokens.length > 1
+      end
+      if 'place' == keyword
+        return 'Too few arguments' if 2 == tokens.length
+        return 'Too many arguments' if tokens.length > 4
+      end
+      args = tokens.drop 1
+      if args.length >= 2
+        args[1] = (1..2).map{|i| tokens.at i}.map do |e|
+          return 'Argument must be a nonnegative integer' if e =~ /\D/
+          coordinate = e.to_i
+          return 'Argument must not exceed 4' unless (0..4).include? coordinate
+          coordinate
+        end
+        args = args.drop 1
+      end
+#print 'args='; p args
       result = case keyword
       when 'left'
         @robot.turn_left
       when 'move'
         @robot.move
       when 'place'
-        @robot.place
+        @robot.place *args
       when 'report'
         @robot.report
       when 'right'
@@ -408,4 +479,4 @@ end
 # To run the automated tests, comment the Loop line below.
 # To run the simulator instead, uncomment it:
 
-# ToyRobot::Loop.new.run
+ ToyRobot::Loop.new.run
