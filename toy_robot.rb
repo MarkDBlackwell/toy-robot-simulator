@@ -1,11 +1,13 @@
 =begin
 Author: Mark D. Blackwell
 Dates:
-November 1, 2013 - create
+November 2, 2013 - create
 
 Based on:
 A test problem for writing Ruby.
 The problem was posed by Locomote (http://www.locomote.com), an Australian based development company.
+
+See bottom for choices.
 
 Tested using Ruby 2.0.0-p247.
 
@@ -37,7 +39,7 @@ module ToyRobot
       end
     end
 
-    def test_after_repositioning_with_bad_coordinates_invalid
+    def test_after_repositioning_to_bad_coordinates_invalid
       @robot.make_valid
       bad_coordinates = [-1, 5]
       bad_coordinates.product(bad_coordinates).each do |x,y|
@@ -46,7 +48,7 @@ module ToyRobot
       end
     end
 
-    def test_after_repositioning_with_good_coordinates_all_valid
+    def test_after_repositioning_to_good_coordinates_all_valid
       @robot.make_valid
       good_coordinates = (0..4).to_a.product((0..4).to_a)
       good_coordinates.each do |x,y|
@@ -55,7 +57,7 @@ module ToyRobot
       end
     end
 
-    def test_after_repositioning_with_good_coordinates_example_valid
+    def test_after_repositioning_to_good_coordinates_example_valid
       @robot.make_valid
       good_coordinates = [0, 0]
       @robot.reposition good_coordinates
@@ -310,7 +312,7 @@ END_OF_INPUT
       assert_equal [-1, -1], @robot.position
     end
 
-    def test_invalid_move_after_turn
+    def test_exercise_invalid_move_after_turn
 # Covers a bug which emerged in user testing.
       @robot.place
       @robot.turn_right
